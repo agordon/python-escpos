@@ -128,14 +128,7 @@ p.ln(4)
 # but to print the disclaimer we want to merge lines
 # and condense whitespaces.
 txt = disclaimer.replace("\n", " ")
-txt = re.sub("  +", " ", txt)
-# textwrap.wrap() ensures words are not broken (unlike "escpos.block_text()").
-txt = textwrap.wrap(txt, width=disclaimer_width)
-# Justify each line
-txt = [justify(x, disclaimer_width) for x in txt]
-p.set_with_default(font="b")
-for l in txt:
-    p.textln(l)
+p.software_columns(text_list=[txt], widths=disclaimer_width, align='justify')
 
 # A creature for good luck
 p.set_with_default()
