@@ -1,7 +1,7 @@
 Usage
 =====
 
-:Last Reviewed: 2023-08-10
+:Last Reviewed: 2025-02-16
 
 Define your printer
 -------------------
@@ -113,7 +113,7 @@ on a USB interface.
 
     from escpos import *
     """ Seiko Epson Corp. Receipt Printer M129 Definitions (EPSON TM-T88IV) """
-    p = printer.Usb(0x04b8,0x0202)
+    p = printer.Usb(0x04b8,0x0202, profile="TM-T88IV")
     # Print text
     p.text("Hello World\n")
     # Print image
@@ -142,7 +142,7 @@ format. For windows it is probably at::
 
     %appdata%/python-escpos/config.yaml
 
-And for linux::
+And for Linux::
 
     $HOME/.config/python-escpos/config.yaml
 
@@ -180,6 +180,7 @@ An example file printer::
     printer:
             type: File
             devfile: /dev/someprinter
+            profile: TM-U220
 
 And for a network printer::
 
@@ -187,6 +188,7 @@ And for a network printer::
             type: Network
             host: 127.0.0.1
             port: 9000
+            profile: TM-U220
 
 An USB-printer could be defined by::
 
@@ -196,21 +198,22 @@ An USB-printer could be defined by::
             idProduct: 0x5678
             in_ep: 0x66
             out_ep: 0x01
+            profile: TM-U220
 
 Printing text right
 -------------------
 
-Python-escpos is designed to accept unicode.
+Python-escpos is designed to accept Unicode.
 
 For normal usage you can simply pass your text to the printers ``text()``-function. It will automatically guess
-the right codepage and then send the encoded data to the printer. If this feature does not work, please try to
+the right code page and then send the encoded data to the printer. If this feature does not work, please try to
 isolate the error and then create an issue on the GitHub project page.
 
-If you want or need to you can manually set the codepage.
+If you want or need to you can manually set the code page.
 For this please use the ``charcode()``-function.
 You can set any key-value that is in ``CHARCODE``.
 If something is wrong, an ``CharCodeError`` will be raised.
-After you have manually set the codepage the printer won't change it anymore.
+After you have manually set the code page the printer won't change it anymore.
 You can revert to normal behavior by setting charcode to ``AUTO``.
 
 Resolving bus timeout issues during printing images
@@ -241,7 +244,7 @@ advantage of the fact that `_raw()` accepts binary strings.)
     p._raw(data)
 
 That's all, the printer should then print your data. You can also use this technique to let others reproduce an issue
-that you have found. (Just "print" your commands to a File-printer on your local filesystem.)
+that you have found. (Just "print" your commands to a File-printer on your local file system.)
 However, please keep in mind, that often it is easier and better to just supply the code that you are using.
 
 Here you can download an example, that will print a set of common barcodes:
@@ -250,8 +253,8 @@ Here you can download an example, that will print a set of common barcodes:
 
 .. _advanced-usage-change-capabilities-profile:
 
-Advanced Usage: change capabilities-profile
--------------------------------------------
+Advanced Usage: change where is the capabilities-profile
+--------------------------------------------------------
 
 Packaged together with the escpos-code is a capabilities-file. This file in
 JSON-format describes the capabilities of different printers. It is developed and hosted in
@@ -316,8 +319,19 @@ Print with STAR TSP100 family
 Printer of the STAR TSP100 family do not have a native ESC/POS mode, which
 is why you will not be able to directly print with this library to the printer.
 
-More information on this topic can be found in the online documentation of
-`Star Micronics <https://www.starmicronics.com/help-center/knowledge-base/configure-tsp100-series-printers-esc-pos-mode/>`_
-and the `discussion in the python-escpos project <https://github.com/python-escpos/python-escpos/issues/410>`_.
+However, for Windows it is possible to use the
+`Win32Raw <https://python-escpos.readthedocs.io/en/latest/user/printers.html#win32raw>`_
+printer type instead by supplying the printer name.
+Only after enabling ESC/POS emulation found in the online documentation of
+`Star Micronics <https://www.starmicronics.com/help-center/knowledge-base/configure-tsp100-series-printers-esc-pos-mode/>`_.
+
+.. code-block:: Python
+
+    p = Win32Raw(<printer-name>)
+
+Currently it does not seem to be possible to emulate ESC/POS on Linux.
+
+More information on this topic can be found in the
+`discussion in the python-escpos project <https://github.com/python-escpos/python-escpos/issues/410>`_.
 
 

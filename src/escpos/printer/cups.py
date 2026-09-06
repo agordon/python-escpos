@@ -13,6 +13,7 @@ import logging
 import tempfile
 from typing import Literal, Optional, Type, Union
 
+from ..constants import RT_MASK_OFFLINE, RT_MASK_ONLINE
 from ..escpos import Escpos
 from ..exceptions import DeviceNotFoundError
 
@@ -65,7 +66,7 @@ class CupsPrinter(Escpos):
 
         Requires ``pycups`` which in turn needs the cups development library package:
             - Ubuntu/Debian: ``libcups2-dev``
-            - OpenSuse/Fedora: ``cups-devel``
+            - openSUSE/Fedora: ``cups-devel``
 
     inheritance:
 
@@ -103,9 +104,9 @@ class CupsPrinter(Escpos):
         self.job_name = ""
         self.pending_job = False
 
-        self._device: Union[
-            Literal[False], Literal[None], Type[cups.Connection]
-        ] = False
+        self._device: Union[Literal[False], Literal[None], Type[cups.Connection]] = (
+            False
+        )
 
     @property
     def printers(self) -> dict:
@@ -199,15 +200,17 @@ class CupsPrinter(Escpos):
         self.pending_job = False
 
     def _read(self) -> bytes:
-        """Return a single-item array with the accepting state of the print queue.
+        """Return the byte corresponding to the RT status response.
+
+        Respond on/offline given the accepting state of the print queue.
 
         states: idle = [3], printing a job = [4], stopped = [5]
         """
         printer = self.printers.get(self.printer_name, {})
         state = printer.get("printer-state")
         if not state or state in [4, 5]:
-            return b"8"  # offline
-        return b"0"  # online
+            return bytes([RT_MASK_OFFLINE])
+        return bytes([RT_MASK_ONLINE])
 
     def close(self) -> None:
         """Close CUPS connection.

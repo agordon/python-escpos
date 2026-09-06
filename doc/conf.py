@@ -34,7 +34,6 @@ root = os.path.relpath(os.path.join(os.path.dirname(__file__), ".."))
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx_autodoc_typehints",
     "sphinx.ext.doctest",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
@@ -44,6 +43,7 @@ extensions = [
     "sphinx.ext.inheritance_diagram",
     "sphinx.ext.imgconverter",
     "sphinxarg.ext",
+    "sphinx_autodoc_typehints",
     "sphinxcontrib.datatemplates",
     "sphinxcontrib.spelling",
 ]
@@ -73,7 +73,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "python-escpos"
-copyright = "2023, python-escpos developers"
+copyright = "2024, python-escpos developers"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -134,7 +134,6 @@ else:
         import sphinx_rtd_theme
 
         html_theme = "sphinx_rtd_theme"
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
     except ImportError:
         print("no sphinx_rtd_theme found, switching to nature")
         html_theme = "default"
@@ -143,6 +142,14 @@ else:
 # further.  For a list of options available for each theme, see the
 # documentation.
 # html_theme_options = {}
+
+# Show a 'Edit on GitHub' link instead of 'View page source'
+html_context = {
+    "display_github": True,
+    "github_user": "python-escpos",
+    "github_repo": "python-escpos",
+    "github_version": "master/doc/",
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
@@ -313,7 +320,7 @@ texinfo_documents = [
 # texinfo_no_detailmenu = False
 
 # spellchecker
-spelling_ignore_pypi_package_names = True
+spelling_ignore_pypi_package_names = False
 spelling_ignore_wiki_words = True
 spelling_ignore_python_builtins = True
 spelling_ignore_importable_modules = True

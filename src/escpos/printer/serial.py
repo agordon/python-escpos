@@ -8,7 +8,6 @@
 :license: MIT
 """
 
-
 import functools
 import logging
 from typing import Literal, Optional, Union
@@ -89,7 +88,7 @@ class Serial(Escpos):
     ):
         """Initialize serial printer.
 
-        :param devfile:  Device file under dev filesystem
+        :param devfile:  Device file under dev file system
         :param baudrate: Baud rate for serial transmission
         :param bytesize: Serial buffer size
         :param timeout:  Read/Write timeout

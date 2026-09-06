@@ -9,8 +9,11 @@ This module contains the abstract base class :py:class:`Escpos`.
 :copyright: Copyright (c) 2012-2017 Bashlinux and python-escpos
 :license: MIT
 """
+
 from __future__ import annotations
 
+import logging
+import re
 import textwrap
 import time
 import warnings
@@ -71,7 +74,7 @@ from .constants import (
     QR_MODEL_2,
     RT_MASK_LOWPAPER,
     RT_MASK_NOPAPER,
-    RT_MASK_ONLINE,
+    RT_MASK_OFFLINE,
     RT_MASK_PAPER,
     RT_STATUS_ONLINE,
     RT_STATUS_PAPER,
@@ -93,6 +96,7 @@ from .exceptions import (
     ImageWidthError,
     SetVariableError,
     TabPosError,
+    ValidationError,
 )
 from .magicencode import MagicEncode
 
@@ -108,7 +112,7 @@ SW_BARCODE_NAMES = {
     for name in barcode.PROVIDED_BARCODES
 }
 
-Alignment = Union[Literal["center", "left", "right"], str]
+Alignment = Union[Literal["center", "left", "right", "justify"], str]
 
 
 class Escpos(object, metaclass=ABCMeta):
@@ -134,6 +138,8 @@ class Escpos(object, metaclass=ABCMeta):
         """
         self.profile = get_profile(profile)
         self.magic = MagicEncode(self, **(magic_encode_args or {}))
+        # Track the value of the current font.
+        self._font: Optional[str] = None
 
     def __del__(self):
         """Call self.close upon deletion."""
@@ -183,7 +189,7 @@ class Escpos(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     def set_sleep_in_fragment(self, sleep_time_ms: int) -> None:
-        """Configures the currently active sleep time after sending a fragment.
+        """Configure the currently active sleep time after sending a fragment.
 
         If during printing an image an issue like "USBTimeoutError: [Errno 110]
         Operation timed out" occurs, setting this value to roughly 300
@@ -460,7 +466,7 @@ class Escpos(object, metaclass=ABCMeta):
         Sets the control sequence from ``CHARCODE`` in :py:mod:`escpos.constants` as active.
         It will be sent with the next text sequence.
         If you set the variable code to ``AUTO`` it will try to automatically guess the
-        right codepage.
+        right code page.
         (This is the standard behavior.)
 
         :param code: Name of CharCode
@@ -593,11 +599,9 @@ class Escpos(object, metaclass=ABCMeta):
         if (not capable["hw"] and not capable["sw"]) or (
             not capable["sw"] and force_software
         ):
-            raise BarcodeTypeError(
-                f"""Profile {
-                    self.profile.profile_data['name']
-                } - hw barcode: {capable['hw']}, sw barcode: {capable['sw']}"""
-            )
+            raise BarcodeTypeError(f"""Profile {
+                self.profile.profile_data['name']
+            } - hw barcode: {capable['hw']}, sw barcode: {capable['sw']}""")
 
         bc_alnum = "".join([char for char in bc.upper() if char.isalnum()])
         capable_bc = {
@@ -876,8 +880,8 @@ class Escpos(object, metaclass=ABCMeta):
     def text(self, txt: str) -> None:
         """Print alpha-numeric text.
 
-        The text has to be encoded in the currently selected codepage.
-        The input text has to be encoded in unicode.
+        The text has to be encoded in the currently selected code page.
+        The input text has to be encoded in Unicode.
 
         :param txt: text to be printed
         :raises: :py:exc:`~escpos.exceptions.TextError`
@@ -887,8 +891,8 @@ class Escpos(object, metaclass=ABCMeta):
     def textln(self, txt: str = "") -> None:
         """Print alpha-numeric text with a newline.
 
-        The text has to be encoded in the currently selected codepage.
-        The input text has to be encoded in unicode.
+        The text has to be encoded in the currently selected code page.
+        The input text has to be encoded in Unicode.
 
         :param txt: text to be printed with a newline
         :raises: :py:exc:`~escpos.exceptions.TextError`
@@ -909,18 +913,37 @@ class Escpos(object, metaclass=ABCMeta):
     def block_text(self, txt, font="0", columns=None) -> None:
         """Print text wrapped to specific columns.
 
-        Text has to be encoded in unicode.
+        Text has to be encoded in Unicode.
 
         :param txt: text to be printed
-        :param font: font to be used, can be :code:`a` or :code:`b`
-        :param columns: amount of columns
+        :param font: font used to look up the wrapping column count when
+            ``columns`` is not set, can be :code:`a` or :code:`b`. This does
+            not switch the active printer font; call ``set(font=...)`` or
+            ``set_with_default(font=...)`` first when the printed text should
+            use a different font.
+        :param columns: amount of columns. Overrides the profile column count
+            looked up from ``font`` when set.
         :return: None
         """
         col_count = self.profile.get_columns(font) if columns is None else columns
         self.text(textwrap.fill(txt, col_count))
 
     @staticmethod
+    def _justify(txt: str, width: int) -> str:
+        """Justify-text on left AND right sides by padding spaces.
+
+        code by: Georgina Skibinski https://stackoverflow.com/a/66087666
+        suggested by agordon @https://github.com/python-escpos/python-escpos/pull/652
+        """
+        prev_txt = txt
+        while (length := width - len(txt)) > 0:
+            txt = re.sub(r"(\s+)", r"\1 ", txt, count=length)
+            if txt == prev_txt:
+                break
+        return txt.rjust(width)
+
     def _padding(
+        self,
         text: str,
         width: int,
         align: Alignment = "center",
@@ -936,6 +959,10 @@ class Escpos(object, metaclass=ABCMeta):
             text = f"{text:<{width}}"
         elif align == "right":
             text = f"{text:>{width}}"
+        elif align == "justify":
+            text = self._justify(text, width)
+        else:
+            raise ValueError("Expected a valid alignment: center|left|right|justify")
 
         return text
 
@@ -972,7 +999,7 @@ class Escpos(object, metaclass=ABCMeta):
             textwrap.wrap(text, widths[i], break_long_words=False)
             for i, text in enumerate(text_list)
         ]
-        max_len = max(*[len(text_group) for text_group in wrapped])
+        max_len = max(0, *[len(text_group) for text_group in wrapped])
         text_colums = []
         for i in range(max_len):
             row = ["" for _ in range(n_cols)]
@@ -1013,6 +1040,9 @@ class Escpos(object, metaclass=ABCMeta):
             If the list of alignment items is shorter than the list of strings then
             the last alignment of the list will be applied till the last string (column).
         """
+        if not all([text_list, widths, align]):
+            raise TypeError("Value can't be of type None")
+
         n_cols = len(text_list)
 
         if isinstance(widths, int):
@@ -1105,8 +1135,12 @@ class Escpos(object, metaclass=ABCMeta):
             self._raw(TXT_STYLE["bold"][bold])
         if underline is not None:
             self._raw(TXT_STYLE["underline"][underline])
-        if font is not None:
+        if font is not None and font != self._font:
             self._raw(SET_FONT(six.int2byte(self.profile.get_font(font))))
+            self._font = font
+            # Force a fresh code page selection as required by some printer
+            # models (confirmed: NT-5890K).
+            self.magic.reset_encoding()
         if align is not None:
             self._raw(TXT_STYLE["align"][align])
 
@@ -1313,6 +1347,10 @@ class Escpos(object, metaclass=ABCMeta):
         """
         if hw.upper() == "INIT":
             self._raw(HW_INIT)
+            # ESC @ resets all settings including the active code page.
+            # Force a fresh code page selection.
+            self.magic.reset_encoding()
+            self._font = None
         elif hw.upper() == "SELECT":
             self._raw(HW_SELECT)
         elif hw.upper() == "RESET":
@@ -1399,7 +1437,7 @@ class Escpos(object, metaclass=ABCMeta):
         else:
             self._raw(PANEL_BUTTON_OFF)
 
-    def query_status(self, mode: bytes) -> bytes:
+    def query_status(self, mode: bytes, raise_not_valid=False) -> bytes:
         """Query the printer for its status.
 
         Returns byte array containing it.
@@ -1407,10 +1445,38 @@ class Escpos(object, metaclass=ABCMeta):
         :param mode: Integer that sets the status mode queried to the printer.
             - RT_STATUS_ONLINE: Printer status.
             - RT_STATUS_PAPER: Paper sensor.
+        :param raise_not_valid: Default False.
+                                False to log error but do not raise exception.
+        :raises: :py:exc:`~escpos.exceptions.ValidationError`
         """
         self._raw(mode)
         status = self._read()
+        is_valid = self._check_valid_response(status)
+        if not is_valid:
+            logging.error("Invalid status data: Couldn't get a valid printer response.")
+            if raise_not_valid:
+                raise ValidationError(
+                    "An attemp to read a response value from the device returned an invalid response"
+                )
+            return b""
         return status
+
+    def _check_valid_response(self, resp: bytes) -> bool:
+        """Check a byte to be a valid ESC/POS response.
+
+        Check if a byte is in the format 0xx1xx10 which is the unique way to
+        distinguish a possible printer's response from other bytes.
+
+        A printer response is obtained after a Real Time Status Query command (DLE EOT).
+
+        :param resp: A byte containing the printer's response.
+        """
+        if len(resp) == 0 or len(resp) > 1:
+            return False
+        # Check bits 7 or 0 are not 1
+        is_valid_7_0 = (resp[0] & 0b10000001) == 0b00000000
+        # Return True if additionally bits 4 and 1 are 1
+        return is_valid_7_0 and (resp[0] & 0b00010010) == 0b00010010
 
     def is_online(self) -> bool:
         """Query the online status of the printer.
@@ -1419,8 +1485,9 @@ class Escpos(object, metaclass=ABCMeta):
         """
         status = self.query_status(RT_STATUS_ONLINE)
         if len(status) == 0:
+            logging.warning("Unknown online status data")
             return False
-        return not (status[0] & RT_MASK_ONLINE)
+        return not (status[0] & RT_MASK_OFFLINE == RT_MASK_OFFLINE)
 
     def paper_status(self) -> int:  # could be IntEnum
         """Query the paper status of the printer.
@@ -1432,7 +1499,8 @@ class Escpos(object, metaclass=ABCMeta):
         """
         status = self.query_status(RT_STATUS_PAPER)
         if len(status) == 0:
-            return 2
+            logging.warning("Unknown paper status data")
+            return 0
         if status[0] & RT_MASK_NOPAPER == RT_MASK_NOPAPER:
             return 0
         if status[0] & RT_MASK_LOWPAPER == RT_MASK_LOWPAPER:
@@ -1555,7 +1623,7 @@ class EscposIO:
                 f"{text}",
             ]
 
-        # TODO check unicode handling
+        # TODO check Unicode handling
         # TODO flush? or on print? (this should prob rather be handled by the _raw-method)
         for line in lines:
             self.printer.set(**params)
@@ -1573,7 +1641,10 @@ class EscposIO:
         return self
 
     def __exit__(
-        self, type: type[BaseException], value: BaseException, traceback: TracebackType
+        self,
+        type: Optional[type[BaseException]],
+        value: Optional[BaseException],
+        traceback: Optional[TracebackType],
     ) -> None:
         """Cut and close if configured.
 
