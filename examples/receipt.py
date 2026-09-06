@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Print a fake receipt
+"""Print a fake receipt."""
 
 import pathlib
 import re
@@ -43,12 +43,14 @@ disclaimer_width = 64
 recipt_barcode = "1234567890"
 
 
-# Justify-text on left AND right sides by padding spaces,
-# code by: Georgina Skibinski https://stackoverflow.com/a/66087666
 def justify(txt: str, width: int) -> str:
+    """Justify text on left AND right sides by padding spaces.
+
+    code by: Georgina Skibinski https://stackoverflow.com/a/66087666
+    """
     prev_txt = txt
-    while (l := width - len(txt)) > 0:
-        txt = re.sub(r"(\s+)", r"\1 ", txt, count=l)
+    while (length := width - len(txt)) > 0:
+        txt = re.sub(r"(\s+)", r"\1 ", txt, count=length)
         if txt == prev_txt:
             break
     return txt.rjust(width)
@@ -67,8 +69,8 @@ p.image(image_path_hocus_pocus, center=True)
 # Print Address, centered
 p.ln(1)
 p.set_with_default(align="center")
-for l in address.split("\n"):
-    p.textln(l)
+for line in address.split("\n"):
+    p.textln(line)
 p.ln(1)
 
 
@@ -84,15 +86,15 @@ p.textln("Served by: " + served_by)
 p.ln(2)
 
 
-## Add a bit of line spacing for itemized list for easier reading
+# Add a bit of line spacing for itemized list for easier reading
 p.set_with_default()
 p.line_spacing(80, 180)
 
-## Itemized list header (bold with underline)
+# Itemized list header (bold with underline)
 p.set_with_default(bold=True, underline=True)
 p.textln(header_format.format(**header))
 
-## Itemized List
+# Itemized List
 p.set_with_default()
 for idx, item in enumerate(items):
     txt = item_format.format(**item)
@@ -104,19 +106,19 @@ for idx, item in enumerate(items):
 
 p.set_with_default()
 
-## Subtotal
+# Subtotal
 subtotal = sum([x["price"] for x in items])
 p.textln(subtotals_format.format(dummy="", desc="subtotal", price=subtotal))
 
-## Tax
+# Tax
 tax_amount = subtotal * tax_percent
 tax_desc = "Guild Tax (%d%%)" % (int(tax_percent * 100.0))
 p.textln(subtotals_format.format(dummy="", desc=tax_desc, price=tax_amount))
 
-## Total
-## NOTE: because we use double-sized font, alignment won't match
-## the previous lines. Instead, with trim leading whitespace,
-## and use the printer's built-in right-alignment feature.
+# Total
+# NOTE: because we use double-sized font, alignment won't match
+# the previous lines. Instead, with trim leading whitespace,
+# and use the printer's built-in right-alignment feature.
 p.set_with_default(align="right", custom_size=True, width=2, height=2)
 total_amount = subtotal + tax_amount
 total_desc = "Total"

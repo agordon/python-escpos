@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+"""Print a block of text with different column widths."""
+
 from escpos import printer
 
-txt = """Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla pellentesque augue libero. Integer non erat in velit venenatis tristique. Phasellus id ultrices orci. Quisque est ligula, varius vel justo sit amet, laoreet porttitor orci. Nulla commodo porta augue id molestie. Duis tempor eget tellus vel posuere."""
+txt = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla pellentesque augue libero. Integer non erat in "
+"velit venenatis tristique. Phasellus id ultrices orci. Quisque est ligula, varius vel justo sit amet, laoreet"
+"porttitor orci. Nulla commodo porta augue id molestie. Duis tempor eget tellus vel posuere."
 
 # p = printer.Usb(0x04B8, 0x0E20, profile="TM-P80")
 p = printer.Dummy(profile="TM-P80")

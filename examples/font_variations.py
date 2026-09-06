@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
+"""Font variations demo.
 
-# This demo allows testing multiple combination of specific font variations.
-# Two lines will be printed for every entry in "variations[]",
-# First line showing the entry index and parametes,
-# Second line being "Hello World".
-#
-# Example:
-# If a printed line shows:
-#   variations[2] =
-#   Hello World
-#   F=b B U AL=R
-# It is the 3rd entry (zero-based index 2),
-# with Font="B", Bold, Underline, Align=right.
+This demo allows testing multiple combination of specific font variations.
+Two lines will be printed for every entry in "variations[]",
+First line showing the entry index and parametes,
+Second line being "Hello World".
+Example:
+If a printed line shows:
+  variations[2] =
+  Hello World
+  F=b B U AL=R
+It is the 3rd entry (zero-based index 2),
+with Font="B", Bold, Underline, Align=right.
+"""
 
 from escpos import printer
 
