@@ -107,7 +107,7 @@ for idx, item in enumerate(items):
 p.set_with_default()
 
 # Subtotal
-subtotal = sum([x["price"] for x in items])
+subtotal = sum([x["price"] for x in items])  # type: ignore
 p.textln(subtotals_format.format(dummy="", desc="subtotal", price=subtotal))
 
 # Tax

@@ -24,7 +24,7 @@ p.textln("Default Text")
 
 # Use any combination of parameters allowed in set_with_default()
 # See: https://python-escpos.readthedocs.io/en/latest/user/methods.html
-variations = [
+variations: list[dict[str, bool | int | str]] = [
     {"font": "a", "custom_size": True, "width": 3, "height": 1},
     {"font": "a", "custom_size": True, "width": 1, "height": 2},
     {"font": "a", "bold": True},
@@ -34,7 +34,7 @@ variations = [
 ]
 
 for idx, v in enumerate(variations):
-    p.set_with_default(**v)
+    p.set_with_default(**v)  # type: ignore
 
     txt = "variations[%d] =" % idx
     p.textln(txt)
@@ -43,9 +43,9 @@ for idx, v in enumerate(variations):
 
     tags = []
     if v.get("font"):
-        tags.append("F=" + v["font"])
+        tags.append("F=" + v["font"])  # type: ignore
     if v.get("align"):
-        tags.append("AL=" + v["align"][:1])
+        tags.append("AL=" + v["align"][:1])  # type: ignore
     if v.get("custom_size"):
         tags.append("CS")
     if "width" in v:
