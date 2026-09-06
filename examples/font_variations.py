@@ -15,7 +15,8 @@
 
 from escpos import printer
 
-p = printer.Usb(0x04B8, 0x0E20, profile="TM-P80")
+# p = printer.Usb(0x04B8, 0x0E20, profile="TM-P80")
+p = printer.Dummy(profile="TM-P80")
 
 p.set_with_default()
 p.textln("Default Text")
@@ -43,7 +44,7 @@ for idx, v in enumerate(variations):
     if v.get("font"):
         tags.append("F=" + v["font"])
     if v.get("align"):
-        tags.append("AL=" + v.get("align")[:1])
+        tags.append("AL=" + v["align"][:1])
     if v.get("custom_size"):
         tags.append("CS")
     if "width" in v:

@@ -2,8 +2,8 @@
 
 # Print a fake receipt
 
+import pathlib
 import re
-import textwrap
 from datetime import datetime
 
 from escpos import printer
@@ -54,11 +54,15 @@ def justify(txt: str, width: int) -> str:
     return txt.rjust(width)
 
 
-p = printer.Usb(0x04B8, 0x0E20, profile="TM-P80")
+# p = printer.Usb(0x04B8, 0x0E20, profile="TM-P80")
+p = printer.Dummy(profile="TM-P80")
 
 # Store Logo at the Top
 p.set_with_default()
-p.image("hocus-pocus.gif", center=True)
+image_path_hocus_pocus = (
+    pathlib.Path(__file__).parent.resolve() / "graphics/receipt/hocus-pocus.gif"
+)
+p.image(image_path_hocus_pocus, center=True)
 
 # Print Address, centered
 p.ln(1)
@@ -128,11 +132,14 @@ p.ln(4)
 # but to print the disclaimer we want to merge lines
 # and condense whitespaces.
 txt = disclaimer.replace("\n", " ")
-p.software_columns(text_list=[txt], widths=disclaimer_width, align='justify')
+p.software_columns(text_list=[txt], widths=disclaimer_width, align="justify")
 
 # A creature for good luck
 p.set_with_default()
 p.ln(2)
-p.image("creature5.gif", center=True)
+image_path_creature5 = (
+    pathlib.Path(__file__).parent.resolve() / "graphics/receipt/creature5.gif"
+)
+p.image(image_path_creature5, center=True)
 
 p.cut(mode="PART", feed=True)
